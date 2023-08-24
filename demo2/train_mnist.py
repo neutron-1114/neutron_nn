@@ -64,7 +64,7 @@ for epoch in range(num_epochs):
 
     with torch.no_grad():
         # 用固定的噪声数据生成图像，以对比经过不同epoch训练后的生成器的生成能力
-        fake_img = G(fixed_noise).reshape(-1, 1, 28, 28)
+        fake_img = G(fixed_noise).reshape(-1, 1, 28, 28).cpu()
         img_grid_fake = torchvision.utils.make_grid(fake_img, normalize=True)
         img_grid_fake_np = img_grid_fake.numpy()
         img_grid_fake_np = np.transpose(img_grid_fake_np, (1, 2, 0))
