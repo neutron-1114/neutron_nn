@@ -1,4 +1,6 @@
-import numpy as np
+import os
+import shutil
+
 import torchvision
 
 from model import simple_gan
@@ -6,7 +8,7 @@ import torch
 import torch.nn as nn
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader
-import cv2
+from torch.utils.tensorboard import SummaryWriter
 
 device = "cuda" if torch.cuda.is_available() else "cpu"
 lr = 3e-4
@@ -26,6 +28,12 @@ G = simple_gan.Generator(noise_dim, image_dim).to(device)
 opt_disc = torch.optim.Adam(D.parameters(), lr=lr)
 opt_gen = torch.optim.Adam(G.parameters(), lr=lr)
 criterion = nn.BCELoss()  # 二分类交叉熵损失函数
+
+# 存放log的文件夹
+log_dir = "./log"
+if os.path.exists(log_dir):
+    shutil.rmtree(log_dir)
+writer = SummaryWriter(log_dir)
 
 total_step = len(loader)
 for epoch in range(num_epochs):
@@ -62,11 +70,14 @@ for epoch in range(num_epochs):
                   f' Step [{i + 1}/{total_step}],'
                   f' G_Loss: {lossG.item():.4f}')
 
-    with torch.no_grad():
-        # 用固定的噪声数据生成图像，以对比经过不同epoch训练后的生成器的生成能力
-        fake_img = G(fixed_noise).reshape(-1, 1, 28, 28).cpu()
-        img_grid_fake = torchvision.utils.make_grid(fake_img, normalize=True)
-        img_grid_fake_np = img_grid_fake.numpy()
-        img_grid_fake_np = np.transpose(img_grid_fake_np, (1, 2, 0))
-        img_grid_fake_np = (img_grid_fake_np * 255).astype(np.uint8)
-        cv2.imwrite(f'./epoch_{epoch + 1}.jpg', img_grid_fake_np)
+        if i == 0:
+            with torch.no_grad():
+                fake_img = G(fixed_noise).reshape(-1, 1, 28, 28)
+                real_img = images.reshape(-1, 1, 28, 28)
+                # make_grid的作用是将若干幅图像拼成一幅图像
+                img_grid_fake = torchvision.utils.make_grid(fake_img, normalize=True)
+                img_grid_real = torchvision.utils.make_grid(real_img, normalize=True)
+                writer.add_image("Fake Images", img_grid_fake, global_step=epoch)
+                writer.add_image("Real Images", img_grid_real, global_step=epoch)
+                writer.add_scalar(tag="lossD", scalar_value=lossD, global_step=epoch)
+                writer.add_scalar(tag="lossG", scalar_value=lossG, global_step=epoch)
