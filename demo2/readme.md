@@ -1,0 +1,2 @@
+train_mnist.py 使用GAN根据mnist训练集生成图片数据（随机数字）
+train_specify_mnist.py 使用GAN根据mnist训练集生成指定数字的图片
